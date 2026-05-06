@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elsewhere.eyris.data.repositories.ContactedRepository
 import com.elsewhere.eyris.data.repositories.LeadsRepository
+import com.elsewhere.eyris.domain.models.ContactStatus
 import com.elsewhere.eyris.domain.models.Lead
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,7 +32,7 @@ class DashboardViewModel @Inject constructor(
                 val contacted = contactedRepository.getContactedLeads()
                 
                 val conversionRate = if (contacted.isNotEmpty()) {
-                    (contacted.filter { it.status == com.elsewhere.eyris.domain.models.ContactStatus.ACCEPTED }.size.toDouble() / contacted.size.toDouble()) * 100.0
+                    (contacted.filter { it.status == ContactStatus.ACCEPTED }.size.toDouble() / contacted.size.toDouble()) * 100.0
                 } else 0.0
 
                 _uiState.value = DashboardUiState(

@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.elsewhere.eyris.data.local.AppDatabase
 import com.elsewhere.eyris.data.remote.scraper.FoursquareApi
 import com.elsewhere.eyris.data.remote.scraper.GoogleMapsScraper
+import com.elsewhere.eyris.data.remote.scraper.OsmOverpassApi
 import com.elsewhere.eyris.data.repository.LeadRepositoryImpl
 import com.elsewhere.eyris.domain.repository.LeadRepository
 import dagger.Module
@@ -61,7 +62,7 @@ object AppModule {
         db: AppDatabase,
         googleMapsScraper: GoogleMapsScraper,
         foursquareApi: FoursquareApi,
-        osmOverpassApi: com.elsewhere.eyris.data.remote.scraper.OsmOverpassApi
+        osmOverpassApi: OsmOverpassApi
     ): LeadRepository {
         return LeadRepositoryImpl(db, googleMapsScraper, foursquareApi, osmOverpassApi)
     }

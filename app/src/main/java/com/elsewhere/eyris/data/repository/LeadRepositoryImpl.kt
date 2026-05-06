@@ -4,6 +4,7 @@ import com.elsewhere.eyris.data.local.AppDatabase
 import com.elsewhere.eyris.data.local.entities.LeadEntity
 import com.elsewhere.eyris.data.remote.scraper.FoursquareApi
 import com.elsewhere.eyris.data.remote.scraper.GoogleMapsScraper
+import com.elsewhere.eyris.data.remote.scraper.OsmOverpassApi
 import com.elsewhere.eyris.domain.models.Lead
 import com.elsewhere.eyris.domain.repository.LeadRepository
 import com.elsewhere.eyris.utils.MergeEngine
@@ -16,7 +17,7 @@ class LeadRepositoryImpl @Inject constructor(
     private val db: AppDatabase,
     private val googleMapsScraper: GoogleMapsScraper,
     private val foursquareApi: FoursquareApi,
-    private val osmOverpassApi: com.elsewhere.eyris.data.remote.scraper.OsmOverpassApi
+    private val osmOverpassApi: OsmOverpassApi
 ) : LeadRepository {
 
     override fun getLeads(): Flow<List<Lead>> = db.leadDao.getAllLeads().map { entities ->
