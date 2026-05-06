@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace 'com.elsewhere.eyris'
+    namespace 'Com.elsewhere.eyris'
     compileSdk 35
 
     defaultConfig {
-        applicationId "com.elsewhere.eyris"
+        applicationId "Com.elsewhere.eyris"
         minSdk 24
         targetSdk 35
         versionCode 1
