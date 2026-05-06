@@ -15,7 +15,8 @@ import javax.inject.Inject
 class LeadRepositoryImpl @Inject constructor(
     private val db: AppDatabase,
     private val googleMapsScraper: GoogleMapsScraper,
-    private val foursquareApi: FoursquareApi
+    private val foursquareApi: FoursquareApi,
+    private val osmOverpassApi: com.elsewhere.eyris.data.remote.scraper.OsmOverpassApi
 ) : LeadRepository {
 
     override fun getLeads(): Flow<List<Lead>> = db.leadDao.getAllLeads().map { entities ->
@@ -33,8 +34,9 @@ class LeadRepositoryImpl @Inject constructor(
     override suspend fun searchRemote(location: String, category: String): List<Lead> {
         val googleResults = googleMapsScraper.search(location, category)
         val foursquareResults = foursquareApi.search(location, category)
+        val osmResults = osmOverpassApi.search(location, category)
         
-        val merged = MergeEngine.merge(listOf(googleResults, foursquareResults))
+        val merged = MergeEngine.merge(listOf(googleResults, foursquareResults, osmResults))
         val ranked = RankingEngine.rank(merged)
         
         // Filter to businesses without websites as per spec

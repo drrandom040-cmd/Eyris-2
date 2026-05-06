@@ -50,8 +50,9 @@ object AppModule {
     fun provideLeadRepository(
         db: AppDatabase,
         googleMapsScraper: GoogleMapsScraper,
-        foursquareApi: FoursquareApi
+        foursquareApi: FoursquareApi,
+        osmOverpassApi: com.elsewhere.eyris.data.remote.scraper.OsmOverpassApi
     ): LeadRepository {
-        return LeadRepositoryImpl(db, googleMapsScraper, foursquareApi)
+        return LeadRepositoryImpl(db, googleMapsScraper, foursquareApi, osmOverpassApi)
     }
 }
