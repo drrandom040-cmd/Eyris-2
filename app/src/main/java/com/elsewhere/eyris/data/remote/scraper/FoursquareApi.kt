@@ -8,7 +8,7 @@ import io.ktor.http.*
 import org.json.JSONObject
 import java.util.UUID
 import javax.inject.Inject
-import Com.elsewhere.eyris.BuildConfig
+import com.elsewhere.eyris.BuildConfig
 
 class FoursquareApi @Inject constructor(
     private val client: HttpClient

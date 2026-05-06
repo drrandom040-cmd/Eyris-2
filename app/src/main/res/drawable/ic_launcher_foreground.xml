@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#000000"
+        android:pathData="M0,0h108v108h-108z" />
+    <group
+        android:translateX="14"
+        android:translateY="14">
+        <!-- Outer Circle / 'C' shape in Gold -->
+        <path
+            android:fillColor="#D4AF37"
+            android:pathData="M40,5C20.67,5 5,20.67 5,40C5,59.33 20.67,75 40,75C51.65,75 61.85,69.32 68.14,60.62L58.26,54.83C54.19,59.9 47.5,63 40,63C27.3,63 17,52.7 17,40C17,27.3 27.3,17 40,17C47.5,17 54.19,20.1 58.26,25.17L68.14,19.38C61.85,10.68 51.65,5 40,5Z" />
+        <!-- Eye shape in Brushed Gold -->
+        <path
+            android:fillColor="#D4AF37"
+            android:pathData="M40,25C25,25 12,40 12,40C12,40 25,55 40,55C55,55 68,40 68,40C68,40 55,25 40,25ZM40,50C34.48,50 30,45.52 30,40C30,34.48 34.48,30 40,30C45.52,30 50,34.48 50,40C50,45.52 45.52,50 40,50Z" />
+    </group>
+</vector>
