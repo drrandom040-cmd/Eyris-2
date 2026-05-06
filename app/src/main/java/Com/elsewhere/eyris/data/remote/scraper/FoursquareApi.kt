@@ -8,14 +8,14 @@ import io.ktor.http.*
 import org.json.JSONObject
 import java.util.UUID
 import javax.inject.Inject
-import Com.elsewhere.eyris.BuildConfig
+// import Com.elsewhere.eyris.BuildConfig (Removed failing import to use fully qualified name instead)
 
 class FoursquareApi @Inject constructor(
     private val client: HttpClient
 ) {
     suspend fun search(location: String, category: String): List<Lead> {
         return try {
-            val apiKey = BuildConfig.FSQ_API_KEY
+            val apiKey = Com.elsewhere.eyris.BuildConfig.FSQ_API_KEY
             if (apiKey.isEmpty()) return emptyList()
 
             val response: HttpResponse = client.get("https://api.foursquare.com/v3/places/search") {
