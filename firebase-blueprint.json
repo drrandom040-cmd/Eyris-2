@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile data.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "lastOnline": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "email"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "Scraped lead data.",
+      "type": "object",
+      "properties": {
+        "leadId": { "type": "string" },
+        "userId": { "type": "string" },
+        "businessName": { "type": "string" },
+        "category": { "type": "string" },
+        "address": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "coverImageUrl": { "type": "string" },
+        "openingHours": { "type": "string" },
+        "instagram": { "type": "string" },
+        "facebook": { "type": "string" },
+        "tiktok": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "hasWebsite": { "type": "boolean" },
+        "websiteUrl": { "type": "string" },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "number" },
+        "weightedScore": { "type": "number" },
+        "savedAt": { "type": "number" },
+        "searchQuery": { "type": "string" },
+        "synced": { "type": "boolean" }
+      },
+      "required": ["leadId", "userId", "businessName"]
+    },
+    "ContactedLead": {
+      "title": "ContactedLead",
+      "description": "Leads that have been contacted.",
+      "type": "object",
+      "properties": {
+        "contactedId": { "type": "string" },
+        "userId": { "type": "string" },
+        "businessName": { "type": "string" },
+        "category": { "type": "string" },
+        "address": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "coverImageUrl": { "type": "string" },
+        "openingHours": { "type": "string" },
+        "instagram": { "type": "string" },
+        "facebook": { "type": "string" },
+        "tiktok": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "hasWebsite": { "type": "boolean" },
+        "websiteUrl": { "type": "string" },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "number" },
+        "weightedScore": { "type": "number" },
+        "status": { "type": "string", "enum": ["ANSWERED", "ACCEPTED", "REJECTED", "GHOSTED"] },
+        "contactedAt": { "type": "number" },
+        "lastUpdatedAt": { "type": "number" },
+        "notes": { "type": "string" },
+        "socialHandleTapped": { "type": "string" },
+        "synced": { "type": "boolean" }
+      },
+      "required": ["contactedId", "userId", "businessName", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Private user profile."
+    },
+    "/leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Collection of leads found by users."
+    },
+    "/contacted/{contactedId}": {
+      "schema": "ContactedLead",
+      "description": "Collection of leads that have been contacted."
+    }
+  }
+}
