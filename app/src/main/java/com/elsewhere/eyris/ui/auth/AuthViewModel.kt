@@ -34,17 +34,19 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun signInAnonymously() { // For demo purposes, or user can implement Google Sign In
+    fun signInWithGoogle() {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                val result = auth.signInAnonymously().await() // This needs tasks-ktx
+                // In a production app, we would use Google Sign In SDK here.
+                // For this environment, we'll use anonymous sign-in to simulate the flow.
+                val result = auth.signInAnonymously().await() 
                 val firebaseUser = result.user
                 if (firebaseUser != null) {
                     val user = User(
                         userId = firebaseUser.uid,
-                        displayName = "Guest User",
-                        email = "guest@example.com"
+                        displayName = firebaseUser.displayName ?: "Google User",
+                        email = firebaseUser.email ?: "user@example.com"
                     )
                     userRepository.saveUser(user)
                     _authState.value = AuthState.Authenticated
@@ -55,8 +57,8 @@ class AuthViewModel @Inject constructor(
         }
     }
     
-    // In a real app, we'd have Google Sign In here.
-    // For this applet, we'll simulate the "Google Sign In" button to just sign in anonymously or with a mock.
+    // Legacy method for compatibility if needed
+    fun signInAnonymously() = signInWithGoogle()
 }
 
 sealed class AuthState {
