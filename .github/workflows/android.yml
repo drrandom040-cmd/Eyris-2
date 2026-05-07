@@ -27,8 +27,7 @@ jobs:
       run: echo "FSQ_API_KEY=${{ secrets.FSQ_API_KEY }}" > local.properties
 
     - name: Build with Gradle
-      run: ./gradlew assembleDebug
-
+      run: gradle assembleDebug
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
