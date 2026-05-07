@@ -1,6 +1,8 @@
 {
   "name": "Eyris",
   "description": "Mobile lead discovery and CRM tool built for freelancers and agency owners to prospect local businesses without websites.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": [
+    "geolocation"
+  ],
   "majorCapabilities": []
 }
