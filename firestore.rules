@@ -29,10 +29,10 @@ service cloud.firestore {
 
     // --- User Rules ---
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow get: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId && isValidUser(incoming());
       // On update, only allow updating displayName and lastOnline
-      allow update: if isOwner(userId) && isValidUser(incoming()) 
+      allow update: if request.auth != null && request.auth.uid == userId && isValidUser(incoming())
         && incoming().userId == existing().userId
         && (
           (incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'lastOnline']))
