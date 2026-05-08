@@ -1,0 +1,115 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- User Rules ---
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      // On update, ensure userId and createdAt are immutable
+      allow update: if isOwner(userId) && isValidUser(incoming()) 
+        && (!('userId' in existing()) || incoming().userId == existing().userId)
+        && (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt);
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['userId', 'displayName', 'email', 'lastOnline', 'createdAt'])
+        && data.userId is string && data.userId.size() <= 128
+        && data.displayName is string && data.displayName.size() <= 200
+        && data.email is string && data.email.size() <= 200
+        && data.lastOnline is number
+        && data.createdAt is number;
+    }
+
+    // --- Lead Rules ---
+    match /leads/{leadId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      // Secure list query
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidLead(incoming());
+      
+      allow update: if isSignedIn() && existing().userId == request.auth.uid 
+        && incoming().userId == existing().userId
+        && isValidLead(incoming());
+        
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    function isValidLead(data) {
+      return data.keys().hasAll(['leadId', 'userId', 'businessName'])
+        && data.leadId is string && data.leadId.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.businessName is string && data.businessName.size() <= 500
+        // Other fields are optional but must have valid types if present
+        && (!('category' in data) || (data.category is string && data.category.size() <= 200))
+        && (!('address' in data) || (data.address is string && data.address.size() <= 500))
+        && (!('lat' in data) || data.lat is number)
+        && (!('lng' in data) || data.lng is number)
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 50))
+        && (!('email' in data) || (data.email is string && data.email.size() <= 200))
+        && (!('coverImageUrl' in data) || (data.coverImageUrl is string && data.coverImageUrl.size() <= 2000))
+        && (!('openingHours' in data) || (data.openingHours is string && data.openingHours.size() <= 1000))
+        && (!('instagram' in data) || (data.instagram is string && data.instagram.size() <= 200))
+        && (!('facebook' in data) || (data.facebook is string && data.facebook.size() <= 200))
+        && (!('tiktok' in data) || (data.tiktok is string && data.tiktok.size() <= 200))
+        && (!('whatsapp' in data) || (data.whatsapp is string && data.whatsapp.size() <= 200))
+        && (!('hasWebsite' in data) || data.hasWebsite is bool)
+        && (!('websiteUrl' in data) || (data.websiteUrl is string && data.websiteUrl.size() <= 2000))
+        && (!('rating' in data) || data.rating is number)
+        && (!('reviewCount' in data) || data.reviewCount is number)
+        && (!('weightedScore' in data) || data.weightedScore is number)
+        && (!('savedAt' in data) || data.savedAt is number)
+        && (!('searchQuery' in data) || (data.searchQuery is string && data.searchQuery.size() <= 500))
+        && (!('synced' in data) || data.synced is bool);
+    }
+
+    // --- Contacted Lead Rules ---
+    match /contacted/{contactedId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidContactedLead(incoming());
+      
+      allow update: if isSignedIn() && existing().userId == request.auth.uid 
+        && incoming().userId == existing().userId
+        && isValidContactedLead(incoming());
+        
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    function isValidContactedLead(data) {
+      return data.keys().hasAll(['contactedId', 'userId', 'businessName', 'status'])
+        && data.contactedId is string && data.contactedId.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.businessName is string && data.businessName.size() <= 500
+        && data.status in ['ANSWERED', 'ACCEPTED', 'REJECTED', 'GHOSTED']
+        // Other fields optional
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 5000))
+        && (!('contactedAt' in data) || data.contactedAt is number)
+        && (!('lastUpdatedAt' in data) || data.lastUpdatedAt is number)
+        && (!('synced' in data) || data.synced is bool);
+    }
+  }
+}

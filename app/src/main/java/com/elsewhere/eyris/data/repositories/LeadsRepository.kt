@@ -18,15 +18,43 @@ class LeadsRepository @Inject constructor(
 
     suspend fun saveLead(lead: Lead) {
         val leadWithUser = lead.copy(userId = userId)
-        leadsCollection.document(lead.leadId).set(leadWithUser).await()
+        try {
+            leadsCollection.document(lead.leadId).set(leadWithUser).await()
+        } catch (e: Exception) {
+            com.elsewhere.eyris.utils.FirestoreUtils.handleFirestoreError(
+                e, 
+                com.elsewhere.eyris.utils.OperationType.WRITE, 
+                "leads/${lead.leadId}", 
+                auth
+            )
+        }
     }
 
     suspend fun getLeads(): List<Lead> {
-        return leadsCollection.whereEqualTo("userId", userId)
-            .get().await().toObjects(Lead::class.java)
+        return try {
+            leadsCollection.whereEqualTo("userId", userId)
+                .get().await().toObjects(Lead::class.java)
+        } catch (e: Exception) {
+            com.elsewhere.eyris.utils.FirestoreUtils.handleFirestoreError(
+                e, 
+                com.elsewhere.eyris.utils.OperationType.LIST, 
+                "leads", 
+                auth
+            )
+            emptyList()
+        }
     }
 
     suspend fun deleteLead(leadId: String) {
-        leadsCollection.document(leadId).delete().await()
+        try {
+            leadsCollection.document(leadId).delete().await()
+        } catch (e: Exception) {
+            com.elsewhere.eyris.utils.FirestoreUtils.handleFirestoreError(
+                e, 
+                com.elsewhere.eyris.utils.OperationType.DELETE, 
+                "leads/$leadId", 
+                auth
+            )
+        }
     }
 }

@@ -15,10 +15,29 @@ class UserRepository @Inject constructor(
     private val usersCollection = firestore.collection("users")
 
     suspend fun saveUser(user: User) {
-        usersCollection.document(user.userId).set(user).await()
+        try {
+            usersCollection.document(user.userId).set(user).await()
+        } catch (e: Exception) {
+            com.elsewhere.eyris.utils.FirestoreUtils.handleFirestoreError(
+                e, 
+                com.elsewhere.eyris.utils.OperationType.WRITE, 
+                "users/${user.userId}", 
+                auth
+            )
+        }
     }
 
     suspend fun getUser(userId: String): User? {
-        return usersCollection.document(userId).get().await().toObject(User::class.java)
+        return try {
+            usersCollection.document(userId).get().await().toObject(User::class.java)
+        } catch (e: Exception) {
+            com.elsewhere.eyris.utils.FirestoreUtils.handleFirestoreError(
+                e, 
+                com.elsewhere.eyris.utils.OperationType.GET, 
+                "users/$userId", 
+                auth
+            )
+            null
+        }
     }
 }

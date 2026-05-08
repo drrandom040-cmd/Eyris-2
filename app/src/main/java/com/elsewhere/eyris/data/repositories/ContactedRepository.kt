@@ -19,12 +19,31 @@ class ContactedRepository @Inject constructor(
 
     suspend fun saveContacted(lead: ContactedLead) {
         val leadWithUser = lead.copy(userId = userId, lastUpdatedAt = System.currentTimeMillis())
-        contactedCollection.document(lead.contactedId).set(leadWithUser).await()
+        try {
+            contactedCollection.document(lead.contactedId).set(leadWithUser).await()
+        } catch (e: Exception) {
+            com.elsewhere.eyris.utils.FirestoreUtils.handleFirestoreError(
+                e, 
+                com.elsewhere.eyris.utils.OperationType.WRITE, 
+                "contacted/${lead.contactedId}", 
+                auth
+            )
+        }
     }
 
     suspend fun getContactedLeads(): List<ContactedLead> {
-        return contactedCollection.whereEqualTo("userId", userId)
-            .orderBy("contactedAt", Query.Direction.DESCENDING)
-            .get().await().toObjects(ContactedLead::class.java)
+        return try {
+            contactedCollection.whereEqualTo("userId", userId)
+                .orderBy("contactedAt", Query.Direction.DESCENDING)
+                .get().await().toObjects(ContactedLead::class.java)
+        } catch (e: Exception) {
+            com.elsewhere.eyris.utils.FirestoreUtils.handleFirestoreError(
+                e, 
+                com.elsewhere.eyris.utils.OperationType.LIST, 
+                "contacted", 
+                auth
+            )
+            emptyList()
+        }
     }
 }
