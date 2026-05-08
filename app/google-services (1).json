@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "746145667577",
+    "project_id": "eyris-121bf",
+    "storage_bucket": "eyris-121bf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:746145667577:android:714185fecbf211c57f4528",
+        "android_client_info": {
+          "package_name": "com.elsewhere.eyris"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "746145667577-tagvh57cqgf6vn8bio5h7qurtkihjs46.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.elsewhere.eyris",
+            "certificate_hash": "d38512eb2ff88dd411a2a1520fd9d4dd2fab4ba2"
+          }
+        },
+        {
+          "client_id": "746145667577-i4r0kedcp0m9geksacam905fiej7bu1l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9Bg_18X88ldFJBX8Zil9qtDIOrGFIvpg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "746145667577-i4r0kedcp0m9geksacam905fiej7bu1l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
