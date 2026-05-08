@@ -23,14 +23,21 @@ service cloud.firestore {
       return resource.data;
     }
 
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
     // --- User Rules ---
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow create: if isOwner(userId) && isValidUser(incoming());
-      // On update, ensure userId and createdAt are immutable
+      // On update, only allow updating displayName and lastOnline
       allow update: if isOwner(userId) && isValidUser(incoming()) 
-        && (!('userId' in existing()) || incoming().userId == existing().userId)
-        && (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt);
+        && incoming().userId == existing().userId
+        && (
+          (incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'lastOnline']))
+          || (incoming().diff(existing()).affectedKeys().size() == 0) // No changes
+        );
     }
 
     function isValidUser(data) {
@@ -38,8 +45,8 @@ service cloud.firestore {
         && data.userId is string && data.userId.size() <= 128
         && data.displayName is string && data.displayName.size() <= 200
         && data.email is string && data.email.size() <= 200
-        && data.lastOnline is number
-        && data.createdAt is number;
+        && (data.lastOnline is int || data.lastOnline is float || data.lastOnline is number)
+        && (data.createdAt is int || data.createdAt is float || data.createdAt is number);
     }
 
     // --- Lead Rules ---

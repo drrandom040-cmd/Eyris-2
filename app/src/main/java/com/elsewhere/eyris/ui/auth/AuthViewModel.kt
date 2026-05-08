@@ -43,11 +43,16 @@ class AuthViewModel @Inject constructor(
                 val result = auth.signInAnonymously().await() 
                 val firebaseUser = result.user
                 if (firebaseUser != null) {
-                    val user = User(
-                        userId = firebaseUser.uid,
-                        displayName = firebaseUser.displayName ?: "Google User",
-                        email = firebaseUser.email ?: "user@example.com"
-                    )
+                    val existingUser = userRepository.getUser(firebaseUser.uid)
+                    val user = if (existingUser != null) {
+                        existingUser.copy(lastOnline = System.currentTimeMillis())
+                    } else {
+                        User(
+                            userId = firebaseUser.uid,
+                            displayName = firebaseUser.displayName ?: "Google User",
+                            email = firebaseUser.email ?: "user@example.com"
+                        )
+                    }
                     userRepository.saveUser(user)
                     _authState.value = AuthState.Authenticated
                 }
