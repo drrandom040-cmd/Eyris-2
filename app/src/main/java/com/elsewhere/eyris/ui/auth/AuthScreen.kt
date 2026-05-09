@@ -7,6 +7,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.elsewhere.eyris.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -70,17 +73,17 @@ fun AuthScreen(
                 modifier = Modifier.padding(top = 100.dp)
             ) {
                 Surface(
-                    color = periwinkle,
+                    color = Color.Black,
                     shape = RoundedCornerShape(28.dp),
-                    modifier = Modifier.size(80.dp),
+                    modifier = Modifier.size(120.dp),
                     shadowElevation = 20.dp
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.Visibility,
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
                             contentDescription = null,
-                            modifier = Modifier.size(36.dp),
-                            tint = darkBg
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
                         )
                     }
                 }

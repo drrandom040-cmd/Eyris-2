@@ -1,11 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 0. Global Safety Net
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
     // --- Global Helpers ---
     function isSignedIn() {
       return request.auth != null;
@@ -30,14 +25,9 @@ service cloud.firestore {
     // --- User Rules ---
     match /users/{userId} {
       allow get: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId && isValidUser(incoming());
-      // On update, only allow updating displayName and lastOnline
-      allow update: if request.auth != null && request.auth.uid == userId && isValidUser(incoming())
-        && incoming().userId == existing().userId
-        && (
-          (incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'lastOnline']))
-          || (incoming().diff(existing()).affectedKeys().size() == 0) // No changes
-        );
+      allow create: if request.auth != null && request.auth.uid == userId;
+      // On update, allow updating if owner
+      allow update: if request.auth != null && request.auth.uid == userId;
     }
 
     function isValidUser(data) {
