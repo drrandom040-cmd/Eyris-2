@@ -14,6 +14,7 @@ import javax.inject.Inject
 
 import com.elsewhere.eyris.data.repositories.LeadsRepository
 import com.elsewhere.eyris.data.repositories.ContactedRepository
+import android.util.Log
 
 enum class SortType {
     NONE, NAME, SCORE
@@ -67,6 +68,8 @@ class SearchViewModel @Inject constructor(
     }
 
     fun search(location: String, category: String) {
+        if (location.isBlank() || category.isBlank()) return
+
         viewModelScope.launch {
             _uiState.value = SearchUiState.Loading
             try {
@@ -80,9 +83,14 @@ class SearchViewModel @Inject constructor(
                 _rawLeads.value = filteredResults
                 _uiState.value = SearchUiState.Success(filteredResults)
             } catch (e: Exception) {
+                Log.e("SearchViewModel", "Search failed", e)
                 _uiState.value = SearchUiState.Error(e.message ?: "Unknown error")
             }
         }
+    }
+
+    fun setError(message: String) {
+        _uiState.value = SearchUiState.Error(message)
     }
 
     fun setSortType(type: SortType) {
