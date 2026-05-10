@@ -9,6 +9,8 @@ import com.elsewhere.eyris.domain.models.Lead
 import com.elsewhere.eyris.domain.repository.LeadRepository
 import com.elsewhere.eyris.utils.MergeEngine
 import com.elsewhere.eyris.utils.RankingEngine
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -32,16 +34,20 @@ class LeadRepositoryImpl @Inject constructor(
         db.leadDao.deleteLead(lead.toEntity())
     }
 
-    override suspend fun searchRemote(location: String, category: String): List<Lead> {
-        val googleResults = googleMapsScraper.search(location, category)
-        val foursquareResults = foursquareApi.search(location, category)
-        val osmResults = osmOverpassApi.search(location, category)
-        
+    override suspend fun searchRemote(location: String, category: String): List<Lead> = coroutineScope {
+        val googleDeferred = async { googleMapsScraper.search(location, category) }
+        val foursquareDeferred = async { foursquareApi.search(location, category) }
+        val osmDeferred = async { osmOverpassApi.search(location, category) }
+
+        val googleResults = googleDeferred.await()
+        val foursquareResults = foursquareDeferred.await()
+        val osmResults = osmDeferred.await()
+
         val merged = MergeEngine.merge(listOf(googleResults, foursquareResults, osmResults))
         val ranked = RankingEngine.rank(merged)
         
         // Filter to businesses without websites as per spec
-        return ranked.filter { !it.hasWebsite }.take(20)
+        ranked.filter { !it.hasWebsite }.take(20)
     }
 
     private fun LeadEntity.toDomain() = Lead(

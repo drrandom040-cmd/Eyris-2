@@ -20,8 +20,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.elsewhere.eyris.domain.models.ContactStatus
 import com.elsewhere.eyris.domain.models.Lead
 import com.elsewhere.eyris.ui.search.SocialCircleButton
 
@@ -35,8 +37,63 @@ fun BusinessProfileScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     
+    var showStatusDialog by remember { mutableStateOf(false) }
+    var selectedPlatform by remember { mutableStateOf("") }
+    var selectedStatus by remember { mutableStateOf(ContactStatus.ANSWERED) }
+    var notes by remember { mutableStateOf("") }
+
     LaunchedEffect(leadId) {
         viewModel.loadLead(leadId)
+    }
+
+    if (showStatusDialog && uiState is ProfileUiState.Success) {
+        val lead = (uiState as ProfileUiState.Success).lead
+        AlertDialog(
+            onDismissRequest = { showStatusDialog = false },
+            title = { Text("Log Contact Outcome") },
+            text = {
+                Column {
+                    Text("How did the contact with ${lead.businessName} go?", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    ContactStatus.values().forEach { status ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) {
+                            RadioButton(
+                                selected = selectedStatus == status,
+                                onClick = { selectedStatus = status }
+                            )
+                            Text(status.name.lowercase().capitalize(), modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    OutlinedTextField(
+                        value = notes,
+                        onValueChange = { notes = it },
+                        label = { Text("Add notes (optional)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.contactLead(lead, selectedPlatform, selectedStatus, notes)
+                    showStatusDialog = false
+                    onBack() // Go back after moving lead
+                }) {
+                    Text("Confirm")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStatusDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -150,7 +207,8 @@ fun BusinessProfileScreen(
                                             icon = Icons.Default.Person,
                                             label = "Instagram",
                                             onClick = {
-                                                viewModel.contactLead(item, "Instagram")
+                                                selectedPlatform = "Instagram"
+                                                showStatusDialog = true
                                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com/${handle.removePrefix("@")}"))
                                                 context.startActivity(intent)
                                             }
@@ -161,7 +219,8 @@ fun BusinessProfileScreen(
                                             icon = Icons.Default.Face,
                                             label = "Facebook",
                                             onClick = {
-                                                viewModel.contactLead(item, "Facebook")
+                                                selectedPlatform = "Facebook"
+                                                showStatusDialog = true
                                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                                 context.startActivity(intent)
                                             }

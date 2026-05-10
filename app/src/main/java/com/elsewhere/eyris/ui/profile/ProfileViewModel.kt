@@ -70,34 +70,40 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun contactLead(lead: Lead, platform: String) {
+    fun contactLead(lead: Lead, platform: String, status: ContactStatus, notes: String) {
         viewModelScope.launch {
-            val contacted = ContactedLead(
-                contactedId = UUID.randomUUID().toString(),
-                userId = lead.userId,
-                businessName = lead.businessName,
-                category = lead.category,
-                address = lead.address,
-                lat = lead.lat,
-                lng = lead.lng,
-                phone = lead.phone,
-                email = lead.email,
-                coverImageUrl = lead.coverImageUrl,
-                openingHours = lead.openingHours,
-                instagram = lead.instagram,
-                facebook = lead.facebook,
-                tiktok = lead.tiktok,
-                whatsapp = lead.whatsapp,
-                hasWebsite = lead.hasWebsite,
-                websiteUrl = lead.websiteUrl,
-                rating = lead.rating,
-                reviewCount = lead.reviewCount,
-                weightedScore = lead.weightedScore,
-                status = ContactStatus.ANSWERED,
-                contactedAt = System.currentTimeMillis(),
-                socialHandleTapped = platform
-            )
-            contactedRepository.saveContacted(contacted)
+            try {
+                val contacted = ContactedLead(
+                    contactedId = lead.leadId, // Keep same ID for consistency
+                    userId = lead.userId,
+                    businessName = lead.businessName,
+                    category = lead.category,
+                    address = lead.address,
+                    lat = lead.lat,
+                    lng = lead.lng,
+                    phone = lead.phone,
+                    email = lead.email,
+                    coverImageUrl = lead.coverImageUrl,
+                    openingHours = lead.openingHours,
+                    instagram = lead.instagram,
+                    facebook = lead.facebook,
+                    tiktok = lead.tiktok,
+                    whatsapp = lead.whatsapp,
+                    hasWebsite = lead.hasWebsite,
+                    websiteUrl = lead.websiteUrl,
+                    rating = lead.rating,
+                    reviewCount = lead.reviewCount,
+                    weightedScore = lead.weightedScore,
+                    status = status,
+                    notes = notes,
+                    contactedAt = System.currentTimeMillis(),
+                    socialHandleTapped = platform
+                )
+                contactedRepository.saveContacted(contacted)
+                leadsRepository.deleteLead(lead.leadId)
+            } catch (e: Exception) {
+                _uiState.value = ProfileUiState.Error("Failed to move lead: ${e.message}")
+            }
         }
     }
 }
