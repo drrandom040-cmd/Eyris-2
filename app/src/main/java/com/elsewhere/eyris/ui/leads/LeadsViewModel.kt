@@ -18,24 +18,29 @@ class LeadsViewModel @Inject constructor(
     private val contactedRepository: ContactedRepository
 ) : ViewModel() {
 
-    private val _leads = MutableStateFlow<List<Lead>>(emptyList())
-    val leads: StateFlow<List<Lead>> = _leads
-
-    private val _contactedLeads = MutableStateFlow<List<ContactedLead>>(emptyList())
-    val contactedLeads: StateFlow<List<ContactedLead>> = _contactedLeads
+    private val _uiState = MutableStateFlow<LeadsUiState>(LeadsUiState.Loading)
+    val uiState: StateFlow<LeadsUiState> = _uiState
 
     init {
         loadData()
     }
 
-    private fun loadData() {
+    fun loadData() {
         viewModelScope.launch {
+            _uiState.value = LeadsUiState.Loading
             try {
-                _leads.value = leadsRepository.getLeads()
-                _contactedLeads.value = contactedRepository.getContactedLeads()
+                val leads = leadsRepository.getLeads()
+                val contactedLeads = contactedRepository.getContactedLeads()
+                _uiState.value = LeadsUiState.Success(leads, contactedLeads)
             } catch (e: Exception) {
-                // Error handling
+                _uiState.value = LeadsUiState.Error(e.message ?: "Failed to load pipeline data")
             }
         }
     }
+}
+
+sealed class LeadsUiState {
+    object Loading : LeadsUiState()
+    data class Success(val leads: List<Lead>, val contactedLeads: List<ContactedLead>) : LeadsUiState()
+    data class Error(val message: String) : LeadsUiState()
 }

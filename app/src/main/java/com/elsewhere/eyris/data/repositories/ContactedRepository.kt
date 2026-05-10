@@ -34,8 +34,9 @@ class ContactedRepository @Inject constructor(
     suspend fun getContactedLeads(): List<ContactedLead> {
         return try {
             contactedCollection.whereEqualTo("userId", userId)
-                .orderBy("contactedAt", Query.Direction.DESCENDING)
-                .get().await().toObjects(ContactedLead::class.java)
+                .get().await()
+                .toObjects(ContactedLead::class.java)
+                .sortedByDescending { it.contactedAt }
         } catch (e: Exception) {
             com.elsewhere.eyris.utils.FirestoreUtils.handleFirestoreError(
                 e, 

@@ -108,13 +108,22 @@ fun SearchScreen(
                     Button(
                         onClick = { viewModel.search(location, category) },
                         modifier = Modifier.fillMaxWidth(),
+                        enabled = uiState !is SearchUiState.Loading,
                         shape = RoundedCornerShape(16.dp),
                         contentPadding = PaddingValues(16.dp),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                     ) {
-                        Icon(Icons.Default.Search, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Scan Area", fontWeight = FontWeight.Bold)
+                        if (uiState is SearchUiState.Loading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.Search, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Scan Area", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }

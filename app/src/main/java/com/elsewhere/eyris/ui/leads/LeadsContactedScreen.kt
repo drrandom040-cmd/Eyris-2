@@ -31,8 +31,7 @@ fun LeadsContactedScreen(
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Leads", "Contacted")
     
-    val leads by viewModel.leads.collectAsState()
-    val contactedLeads by viewModel.contactedLeads.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -74,9 +73,29 @@ fun LeadsContactedScreen(
                 .padding(padding)
                 .background(Color(0xFFF8F9FA))
         ) {
-            when (selectedTab) {
-                0 -> LeadsList(leads, onNavigateToProfile)
-                1 -> ContactedList(contactedLeads, onNavigateToProfile)
+            when (val state = uiState) {
+                is LeadsUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
+                is LeadsUiState.Error -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(onClick = { viewModel.loadData() }) {
+                                Text("Retry")
+                            }
+                        }
+                    }
+                }
+                is LeadsUiState.Success -> {
+                    when (selectedTab) {
+                        0 -> LeadsList(state.leads, onNavigateToProfile)
+                        1 -> ContactedList(state.contactedLeads, onNavigateToProfile)
+                    }
+                }
             }
         }
     }

@@ -20,13 +20,53 @@ class ProfileViewModel @Inject constructor(
     private val contactedRepository: ContactedRepository
 ) : ViewModel() {
 
-    private val _lead = MutableStateFlow<Lead?>(null)
-    val lead: StateFlow<Lead?> = _lead
+    private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
+    val uiState: StateFlow<ProfileUiState> = _uiState
 
     fun loadLead(leadId: String) {
         viewModelScope.launch {
-            val leads = leadsRepository.getLeads()
-            _lead.value = leads.find { it.leadId == leadId }
+            _uiState.value = ProfileUiState.Loading
+            try {
+                val leads = leadsRepository.getLeads()
+                val lead = leads.find { it.leadId == leadId }
+                if (lead != null) {
+                    _uiState.value = ProfileUiState.Success(lead)
+                } else {
+                    // Check in contacted repository too
+                    val contactedLeads = contactedRepository.getContactedLeads()
+                    val contactedAsLead = contactedLeads.find { it.contactedId == leadId }?.let {
+                        Lead(
+                            leadId = it.contactedId,
+                            userId = it.userId,
+                            businessName = it.businessName,
+                            category = it.category,
+                            address = it.address,
+                            lat = it.lat,
+                            lng = it.lng,
+                            phone = it.phone,
+                            email = it.email,
+                            coverImageUrl = it.coverImageUrl,
+                            openingHours = it.openingHours,
+                            instagram = it.instagram,
+                            facebook = it.facebook,
+                            tiktok = it.tiktok,
+                            whatsapp = it.whatsapp,
+                            hasWebsite = it.hasWebsite,
+                            websiteUrl = it.websiteUrl,
+                            rating = it.rating,
+                            reviewCount = it.reviewCount,
+                            weightedScore = it.weightedScore
+                        )
+                    }
+                    if (contactedAsLead != null) {
+                        _uiState.value = ProfileUiState.Success(contactedAsLead)
+                    } else {
+                        _uiState.value = ProfileUiState.Error("Lead not found")
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.value = ProfileUiState.Error(e.message ?: "Failed to load profile")
+            }
         }
     }
 
@@ -58,8 +98,12 @@ class ProfileViewModel @Inject constructor(
                 socialHandleTapped = platform
             )
             contactedRepository.saveContacted(contacted)
-            // Optionally delete from leads
-            // leadsRepository.deleteLead(lead.leadId)
         }
     }
+}
+
+sealed class ProfileUiState {
+    object Loading : ProfileUiState()
+    data class Success(val lead: Lead) : ProfileUiState()
+    data class Error(val message: String) : ProfileUiState()
 }

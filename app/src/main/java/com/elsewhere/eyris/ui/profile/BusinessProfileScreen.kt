@@ -33,7 +33,7 @@ fun BusinessProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val lead by viewModel.lead.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     
     LaunchedEffect(leadId) {
         viewModel.loadLead(leadId)
@@ -52,103 +52,122 @@ fun BusinessProfileScreen(
             )
         }
     ) { padding ->
-        lead?.let { item ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 0.dp) // Merge with header
-            ) {
-                item {
-                    Box(modifier = Modifier.fillMaxWidth().height(260.dp)) {
-                        AsyncImage(
-                            model = item.coverImageUrl ?: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800",
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(androidx.compose.ui.graphics.Brush.verticalGradient(
-                                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
-                                ))
-                        )
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(24.dp)
-                        ) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text(
-                                    item.category.uppercase(),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            when (val state = uiState) {
+                is ProfileUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
+                is ProfileUiState.Error -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = onBack) {
+                                Text("Go Back")
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                item.businessName,
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Black,
-                                color = Color.White
-                            )
                         }
                     }
                 }
-
-                item {
-                    Column(modifier = Modifier.padding(24.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            repeat(5) { index ->
-                                Icon(
-                                    Icons.Default.Star,
+                is ProfileUiState.Success -> {
+                    val item = state.lead
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        item {
+                            Box(modifier = Modifier.fillMaxWidth().height(260.dp)) {
+                                AsyncImage(
+                                    model = item.coverImageUrl ?: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800",
                                     contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                    tint = if (index < item.rating.toInt()) Color(0xFFFFB300) else Color(0xFFEEEEEE)
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
                                 )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(androidx.compose.ui.graphics.Brush.verticalGradient(
+                                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
+                                        ))
+                                )
+                                Column(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomStart)
+                                        .padding(24.dp)
+                                ) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text(
+                                            item.category.uppercase(),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        item.businessName,
+                                        style = MaterialTheme.typography.headlineLarge,
+                                        fontWeight = FontWeight.Black,
+                                        color = Color.White
+                                    )
+                                }
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("${item.rating} (${item.reviewCount} reviews)", fontWeight = FontWeight.Bold)
                         }
-                        
-                        Spacer(modifier = Modifier.height(24.dp))
-                        
-                        InfoRow(icon = Icons.Default.LocationOn, text = item.address)
-                        item.phone?.let { InfoRow(icon = Icons.Default.Phone, text = it) }
-                        item.openingHours?.let { InfoRow(icon = Icons.Default.AccessTime, text = it) }
-                        
-                        Spacer(modifier = Modifier.height(32.dp))
-                        
-                        Text("SOCIAL HANDLES", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.Gray)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            item.instagram?.let { handle ->
-                                SocialLargeButton(
-                                    icon = Icons.Default.Person,
-                                    label = "Instagram",
-                                    onClick = { 
-                                        viewModel.contactLead(item, "Instagram")
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com/${handle.removePrefix("@")}"))
-                                        context.startActivity(intent)
+
+                        item {
+                            Column(modifier = Modifier.padding(24.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    repeat(5) { index ->
+                                        Icon(
+                                            Icons.Default.Star,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp),
+                                            tint = if (index < item.rating.toInt()) Color(0xFFFFB300) else Color(0xFFEEEEEE)
+                                        )
                                     }
-                                )
-                            }
-                            item.facebook?.let { url ->
-                                SocialLargeButton(
-                                    icon = Icons.Default.Face,
-                                    label = "Facebook",
-                                    onClick = { 
-                                        viewModel.contactLead(item, "Facebook")
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                        context.startActivity(intent)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("${item.rating} (${item.reviewCount} reviews)", fontWeight = FontWeight.Bold)
+                                }
+
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                InfoRow(icon = Icons.Default.LocationOn, text = item.address)
+                                item.phone?.let { InfoRow(icon = Icons.Default.Phone, text = it) }
+                                item.openingHours?.let { InfoRow(icon = Icons.Default.AccessTime, text = it) }
+
+                                Spacer(modifier = Modifier.height(32.dp))
+
+                                Text("SOCIAL HANDLES", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.Gray)
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    item.instagram?.let { handle ->
+                                        SocialLargeButton(
+                                            icon = Icons.Default.Person,
+                                            label = "Instagram",
+                                            onClick = {
+                                                viewModel.contactLead(item, "Instagram")
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com/${handle.removePrefix("@")}"))
+                                                context.startActivity(intent)
+                                            }
+                                        )
                                     }
-                                )
+                                    item.facebook?.let { url ->
+                                        SocialLargeButton(
+                                            icon = Icons.Default.Face,
+                                            label = "Facebook",
+                                            onClick = {
+                                                viewModel.contactLead(item, "Facebook")
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                context.startActivity(intent)
+                                            }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

@@ -68,12 +68,21 @@ fun DashboardScreen(
                             modifier = Modifier.size(48.dp),
                             color = periwinkle.copy(alpha = 0.2f)
                         ) {
-                            Icon(
-                                Icons.Default.Person,
-                                contentDescription = null,
-                                tint = periwinkle,
-                                modifier = Modifier.padding(8.dp)
-                            )
+                            if (uiState.userPhotoUrl != null) {
+                                AsyncImage(
+                                    model = uiState.userPhotoUrl,
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = periwinkle,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
                         }
 
                         IconButton(onClick = { /* Settings */ }) {
@@ -88,7 +97,7 @@ fun DashboardScreen(
                             color = Color.White.copy(alpha = 0.6f)
                         )
                         Text(
-                            "Prospector", // Ideally user name
+                            uiState.userName,
                             style = MaterialTheme.typography.displaySmall,
                             fontWeight = FontWeight.Black,
                             color = Color.White
@@ -162,6 +171,18 @@ fun DashboardScreen(
                             }
                         }
                     }
+                }
+            }
+
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    StatCard("Leads", uiState.leadsCount.toString(), Modifier.weight(1f))
+                    StatCard("Contacted", uiState.contactedCount.toString(), Modifier.weight(1f))
                 }
             }
 
@@ -255,6 +276,20 @@ fun LeadHeroCard(name: String, location: String, imageUrl: String?, onClick: () 
                     maxLines = 1
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF161618))
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(label, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.4f))
         }
     }
 }
