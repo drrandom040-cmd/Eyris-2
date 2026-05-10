@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "746145667577-tagvh57cqgf6vn8bio5h7qurtkihjs46.apps.googleusercontent.com",
+          "client_id": "746145667577-fpj397s95mojeeuf2vt5p1ia3k1duthi.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.elsewhere.eyris",
-            "certificate_hash": "d38512eb2ff88dd411a2a1520fd9d4dd2fab4ba2"
+            "certificate_hash": "1c6015a4cf3c697cf9ca0a116c518b87b85b3652"
           }
         },
         {
