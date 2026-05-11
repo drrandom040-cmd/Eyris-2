@@ -1,5 +1,6 @@
 package com.elsewhere.eyris.data.remote.scraper
 
+import android.util.Log
 import com.elsewhere.eyris.domain.models.Lead
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -9,6 +10,9 @@ import java.util.UUID
 import javax.inject.Inject
 
 class GoogleMapsScraper @Inject constructor() {
+
+    private val mobileUserAgent = "Mozilla/5.0 (Linux; Android 13; SM-S901B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36"
+
     suspend fun search(location: String, category: String): List<Lead> {
         return withContext(Dispatchers.IO) {
             val results = mutableListOf<Lead>()
@@ -16,26 +20,50 @@ class GoogleMapsScraper @Inject constructor() {
                 val query = "$category in $location"
                 val url = "https://www.google.com/search?q=${URLEncoder.encode(query, "UTF-8")}&tbm=lcl"
                 
-                val doc = Jsoup.connect(url)
-                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-                    .get()
+                val connection = Jsoup.connect(url)
+                    .userAgent(mobileUserAgent)
+                    .timeout(15000)
+                    .header("Accept-Language", "en-US,en;q=0.9")
 
-                // Google Local results parsing (simplified for the prompt's request)
-                val elements = doc.select("div.VkpSyc") // Common class for local result items
+                val doc = connection.get()
+
+                // Robust Captcha and Block Detection
+                val pageTitle = doc.title()
+                if (pageTitle.contains("Service Unavailable") ||
+                    pageTitle.contains("Sorry") ||
+                    doc.select("iframe[src*='recaptcha']").isNotEmpty() ||
+                    doc.body().text().contains("unusual traffic from your computer network")) {
+                    Log.w("GoogleMapsScraper", "Google search blocked: $pageTitle")
+                    return@withContext emptyList()
+                }
+
+                // Corrected Selector: Only select parent result cards to avoid duplicates
+                // div.VkpSyc is the standard container for local pack result cards
+                val elements = doc.select("div.VkpSyc")
+                if (elements.isEmpty()) {
+                    Log.d("GoogleMapsScraper", "No results found for query: $query")
+                }
+
                 elements.forEach { element ->
-                    val name = element.select("div.rllt__details span.OSrXXb").text()
-                    val address = element.select("div.rllt__details div:nth-child(3)").text()
-                    val ratingStr = element.select("span.Ym9Kbc").text().replace(",", ".")
+                    // Scope searches strictly within the result card
+                    val name = element.select("div.rllt__details span.OSrXXb").firstOrNull()?.text() ?: ""
+
+                    // Address parsing: typically the third div in the details block
+                    val address = element.select("div.rllt__details div:nth-child(3)").firstOrNull()?.text() ?: ""
+
+                    val ratingStr = element.select("span.Ym9Kbc").firstOrNull()?.text()?.replace(",", ".") ?: ""
                     val rating = ratingStr.toDoubleOrNull() ?: 0.0
-                    val reviewCountStr = element.select("span.RDA5Wb").text().filter { it.isDigit() }
+
+                    val reviewCountStr = element.select("span.RDA5Wb").firstOrNull()?.text()?.filter { it.isDigit() } ?: ""
                     val reviewCount = reviewCountStr.toIntOrNull() ?: 0
                     
-                    val hasWebsite = element.select("a.yY6Kbe").isNotEmpty() || element.select("div.P94v7b").text().contains("Website")
+                    // Website detection: check for specific icons or text indicators
+                    val hasWebsite = element.select("a.yY6Kbe").isNotEmpty() ||
+                                     element.text().contains("Website", ignoreCase = true)
                     
-                    if (name.isNotEmpty()) {
-                        val handle = name.lowercase().replace(" ", "")
+                    if (name.isNotBlank()) {
                         results.add(Lead(
-                            leadId = UUID.randomUUID().toString(),
+                            leadId = "google_${UUID.nameUUIDFromBytes(name.toByteArray())}",
                             businessName = name,
                             category = category,
                             address = address,
@@ -43,16 +71,16 @@ class GoogleMapsScraper @Inject constructor() {
                             reviewCount = reviewCount,
                             hasWebsite = hasWebsite,
                             searchQuery = query,
-                            coverImageUrl = "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800", // Default Cafe-ish image
-                            instagram = "@$handle",
-                            facebook = "https://facebook.com/$handle",
-                            whatsapp = "+440000000000",
-                            websiteUrl = if (hasWebsite) "https://www.google.com/search?q=$handle" else null
+                            coverImageUrl = null, // Removed fabricated placeholder
+                            instagram = null,    // Removed fabricated handles
+                            facebook = null,     // Removed fabricated handles
+                            whatsapp = null,
+                            websiteUrl = null
                         ))
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("GoogleMapsScraper", "Error scraping Google Search Local", e)
             }
             results
         }

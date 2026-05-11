@@ -4,53 +4,51 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elsewhere.eyris.data.repositories.ContactedRepository
 import com.elsewhere.eyris.data.repositories.LeadsRepository
-import com.elsewhere.eyris.domain.models.ContactStatus
+import com.elsewhere.eyris.domain.models.ContactedLead
 import com.elsewhere.eyris.domain.models.Lead
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
+    private val auth: FirebaseAuth,
     private val leadsRepository: LeadsRepository,
     private val contactedRepository: ContactedRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(DashboardUiState())
-    val uiState: StateFlow<DashboardUiState> = _uiState
-
-    init {
-        loadDashboardData()
-    }
-
-    private fun loadDashboardData() {
-        viewModelScope.launch {
-            try {
-                val leads = leadsRepository.getLeads()
-                val contacted = contactedRepository.getContactedLeads()
-                
-                val conversionRate = if (contacted.isNotEmpty()) {
-                    (contacted.filter { it.status == ContactStatus.ACCEPTED }.size.toDouble() / contacted.size.toDouble()) * 100.0
-                } else 0.0
-
-                _uiState.value = DashboardUiState(
-                    leadsCount = leads.size,
-                    contactedCount = contacted.size,
-                    topLeads = leads.sortedByDescending { it.weightedScore }.take(3),
-                    conversionRate = conversionRate
-                )
-            } catch (e: Exception) {
-                // Handle error
-            }
-        }
-    }
+    val uiState: StateFlow<DashboardUiState> = combine(
+        leadsRepository.getAllLeads(),
+        contactedRepository.getAllContacted()
+    ) { leads, contacted ->
+        val user = auth.currentUser
+        DashboardUiState.Success(
+            userName = user?.displayName ?: "Prospector",
+            userPhotoUrl = user?.photoUrl?.toString(),
+            totalLeads = leads.size,
+            contactedCount = contacted.size,
+            recentLeads = leads.take(5),
+            topRankedLeads = leads.sortedByDescending { it.weightedScore }.take(5)
+        ) as DashboardUiState
+    }.catch { e ->
+        emit(DashboardUiState.Error(e.message ?: "Unknown error"))
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = DashboardUiState.Loading
+    )
 }
 
-data class DashboardUiState(
-    val leadsCount: Int = 0,
-    val contactedCount: Int = 0,
-    val topLeads: List<Lead> = emptyList(),
-    val conversionRate: Double = 0.0
-)
+sealed interface DashboardUiState {
+    data object Loading : DashboardUiState
+    data class Success(
+        val userName: String,
+        val userPhotoUrl: String?,
+        val totalLeads: Int,
+        val contactedCount: Int,
+        val recentLeads: List<Lead>,
+        val topRankedLeads: List<Lead>
+    ) : DashboardUiState
+    data class Error(val message: String) : DashboardUiState
+}

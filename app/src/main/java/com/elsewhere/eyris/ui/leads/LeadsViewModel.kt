@@ -7,9 +7,7 @@ import com.elsewhere.eyris.data.repositories.LeadsRepository
 import com.elsewhere.eyris.domain.models.ContactedLead
 import com.elsewhere.eyris.domain.models.Lead
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 @HiltViewModel
@@ -18,24 +16,25 @@ class LeadsViewModel @Inject constructor(
     private val contactedRepository: ContactedRepository
 ) : ViewModel() {
 
-    private val _leads = MutableStateFlow<List<Lead>>(emptyList())
-    val leads: StateFlow<List<Lead>> = _leads
+    val uiState: StateFlow<LeadsUiState> = combine(
+        leadsRepository.getAllLeads(),
+        contactedRepository.getAllContacted()
+    ) { leads, contacted ->
+        LeadsUiState.Success(leads, contacted) as LeadsUiState
+    }.catch { e ->
+        emit(LeadsUiState.Error(e.message ?: "Unknown error"))
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = LeadsUiState.Loading
+    )
+}
 
-    private val _contactedLeads = MutableStateFlow<List<ContactedLead>>(emptyList())
-    val contactedLeads: StateFlow<List<ContactedLead>> = _contactedLeads
-
-    init {
-        loadData()
-    }
-
-    private fun loadData() {
-        viewModelScope.launch {
-            try {
-                _leads.value = leadsRepository.getLeads()
-                _contactedLeads.value = contactedRepository.getContactedLeads()
-            } catch (e: Exception) {
-                // Error handling
-            }
-        }
-    }
+sealed interface LeadsUiState {
+    data object Loading : LeadsUiState
+    data class Success(
+        val leads: List<Lead>,
+        val contactedLeads: List<ContactedLead>
+    ) : LeadsUiState
+    data class Error(val message: String) : LeadsUiState
 }

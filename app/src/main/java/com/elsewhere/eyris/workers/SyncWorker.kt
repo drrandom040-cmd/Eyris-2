@@ -1,18 +1,50 @@
 package com.elsewhere.eyris.workers
 
 import android.content.Context
+import android.util.Log
+import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.elsewhere.eyris.data.repositories.ContactedRepository
+import com.elsewhere.eyris.data.repositories.LeadsRepository
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.tasks.await
 
+@HiltWorker
 class SyncWorker @AssistedInject constructor(
     @Assisted appContext: Context,
-    @Assisted workerParams: WorkerParameters
+    @Assisted workerParams: WorkerParameters,
+    private val leadsRepository: LeadsRepository,
+    private val contactedRepository: ContactedRepository,
+    private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        // Implement Firestore sync logic here
-        return Result.success()
+        val userId = auth.currentUser?.uid ?: return Result.failure()
+
+        return try {
+            // Sync Leads
+            val unsyncedLeads = leadsRepository.getLeadsSync().filter { !it.synced }
+            unsyncedLeads.forEach { lead ->
+                firestore.collection("leads").document(lead.leadId).set(lead.copy(synced = true)).await()
+                leadsRepository.saveLead(lead.copy(synced = true))
+            }
+
+            // Sync Contacted
+            val unsyncedContacted = contactedRepository.getContactedLeadsSync().filter { !it.synced }
+            unsyncedContacted.forEach { contacted ->
+                firestore.collection("contacted").document(contacted.contactedId).set(contacted.copy(synced = true)).await()
+                contactedRepository.saveContacted(contacted.copy(synced = true))
+            }
+
+            Result.success()
+        } catch (e: Exception) {
+            Log.e("SyncWorker", "Sync failed", e)
+            Result.retry()
+        }
     }
 }

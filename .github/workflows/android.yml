@@ -2,7 +2,6 @@ name: Android CI
 
 on:
   push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
@@ -21,7 +20,10 @@ jobs:
         cache: gradle
 
     - name: Create google-services.json
-      run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
+      run: |
+        if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
+        fi
 
     - name: Create local.properties
       run: echo "FSQ_API_KEY=${{ secrets.FSQ_API_KEY }}" > local.properties

@@ -9,6 +9,9 @@ interface ContactedDao {
     @Query("SELECT * FROM contacted ORDER BY contactedAt DESC")
     fun getAllContacted(): Flow<List<ContactedEntity>>
 
+    @Query("SELECT * FROM contacted")
+    suspend fun getAllContactedSync(): List<ContactedEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertContacted(contacted: ContactedEntity)
 

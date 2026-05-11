@@ -1,6 +1,6 @@
 package com.elsewhere.eyris.domain.models
 
-enum class ContactStatus {
+enum class LeadStatus {
     ANSWERED, ACCEPTED, REJECTED, GHOSTED
 }
 
@@ -27,7 +27,7 @@ data class ContactedLead(
     val reviewCount: Int = 0,
     val weightedScore: Double = 0.0,
     // CRM fields
-    val status: ContactStatus = ContactStatus.ANSWERED,
+    val status: LeadStatus = LeadStatus.ANSWERED,
     val contactedAt: Long = System.currentTimeMillis(),
     val lastUpdatedAt: Long = System.currentTimeMillis(),
     val notes: String = "",
