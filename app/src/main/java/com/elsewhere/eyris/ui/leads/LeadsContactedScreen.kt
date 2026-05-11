@@ -3,9 +3,7 @@ package com.elsewhere.eyris.ui.leads
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -14,65 +12,41 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.elsewhere.eyris.domain.models.LeadStatus
 import com.elsewhere.eyris.domain.models.Lead
 import com.elsewhere.eyris.domain.models.ContactedLead
-import com.elsewhere.eyris.domain.models.ContactStatus
-import com.elsewhere.eyris.ui.search.LeadItem
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeadsContactedScreen(
     onNavigateToProfile: (String) -> Unit,
     viewModel: LeadsViewModel = hiltViewModel()
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Leads", "Contacted")
-    
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val tabs = listOf("Pipeline", "Contacted")
 
-    Scaffold(
-        topBar = {
-            Column(modifier = Modifier.background(Color.White)) {
-                TopAppBar(
-                    title = { Text("CRM Pipeline", fontWeight = FontWeight.Black) },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+    Column(modifier = Modifier.fillMaxSize()) {
+        TabRow(
+            selectedTabIndex = selectedTabIndex,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.primary
+        ) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTabIndex == index,
+                    onClick = { selectedTabIndex = index },
+                    text = { Text(title, fontWeight = FontWeight.Bold) }
                 )
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = Color.White,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    indicator = { tabPositions ->
-                        TabRowDefaults.SecondaryIndicator(
-                            modifier = Modifier.then(
-                                with(TabRowDefaults) {
-                                    Modifier.tabIndicatorOffset(tabPositions[selectedTab])
-                                }
-                            ),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    divider = {}
-                ) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            text = { Text(title, fontWeight = FontWeight.Bold) }
-                        )
-                    }
-                }
             }
         }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(Color(0xFFF8F9FA))
-        ) {
+
+        Box(modifier = Modifier.fillMaxSize()) {
             when (val state = uiState) {
                 is LeadsUiState.Loading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -81,19 +55,14 @@ fun LeadsContactedScreen(
                 }
                 is LeadsUiState.Error -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Button(onClick = { viewModel.loadData() }) {
-                                Text("Retry")
-                            }
-                        }
+                        Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
                     }
                 }
                 is LeadsUiState.Success -> {
-                    when (selectedTab) {
-                        0 -> LeadsList(state.leads, onNavigateToProfile)
-                        1 -> ContactedList(state.contactedLeads, onNavigateToProfile)
+                    if (selectedTabIndex == 0) {
+                        PipelineList(state.leads, onNavigateToProfile)
+                    } else {
+                        ContactedList(state.contactedLeads, onNavigateToProfile)
                     }
                 }
             }
@@ -102,112 +71,129 @@ fun LeadsContactedScreen(
 }
 
 @Composable
-fun LeadsList(leads: List<Lead>, onNavigateToProfile: (String) -> Unit) {
+fun PipelineList(leads: List<Lead>, onNavigateToProfile: (String) -> Unit) {
     if (leads.isEmpty()) {
-        EmptyState(message = "No leads saved yet.")
+        EmptyState(Icons.Default.Search, "No leads found. Start a search to find new businesses.")
     } else {
-        LazyColumn(
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(leads) { lead ->
-                LeadItem(
-                    lead = lead,
-                    onSocialClick = { /* Handled in profile */ },
-                    onContactClick = { onNavigateToProfile(lead.leadId) }
-                )
+                LeadCard(lead) { onNavigateToProfile(lead.leadId) }
             }
         }
     }
 }
 
 @Composable
-fun ContactedList(contacted: List<ContactedLead>, onNavigateToProfile: (String) -> Unit) {
-    var filterStatus by remember { mutableStateOf<ContactStatus?>(null) }
-    
-    val filteredList = if (filterStatus == null) contacted else contacted.filter { it.status == filterStatus }
-
-    Column {
-        LazyRow(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            item {
-                FilterChip(
-                    selected = filterStatus == null,
-                    onClick = { filterStatus = null },
-                    label = { Text("All") },
-                    shape = CircleShape
-                )
+fun ContactedList(leads: List<ContactedLead>, onNavigateToProfile: (String) -> Unit) {
+    if (leads.isEmpty()) {
+        EmptyState(Icons.Default.Contacts, "No contacted businesses. Move leads from the pipeline once contacted.")
+    } else {
+        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(leads) { lead ->
+                ContactedCard(lead) { onNavigateToProfile(lead.contactedId) }
             }
-            ContactStatus.values().forEach { status ->
-                item {
-                    FilterChip(
-                        selected = filterStatus == status,
-                        onClick = { filterStatus = status },
-                        label = { Text(status.name) },
-                        shape = CircleShape
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LeadCard(lead: Lead, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        lead.category.uppercase(),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    "Score: ${String.format("%.1f", lead.weightedScore)}",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(lead.businessName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+            Text(lead.address, style = MaterialTheme.typography.bodyMedium, color = Color.Gray, maxLines = 1)
         }
-        
-        if (filteredList.isEmpty()) {
-            EmptyState(message = "No contacted leads found.")
-        } else {
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(filteredList) { item ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        onClick = { onNavigateToProfile(item.contactedId) }
-                    ) {
-                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(item.businessName, fontWeight = FontWeight.Bold)
-                                Text(item.category, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                            }
-                            StatusBadge(item.status)
-                        }
-                    }
-                }
-                item { Spacer(modifier = Modifier.height(100.dp)) }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ContactedCard(lead: ContactedLead, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StatusBadge(lead.status)
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    lead.category,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.Gray
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(lead.businessName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            if (lead.notes.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(lead.notes, style = MaterialTheme.typography.bodySmall, maxLines = 2)
             }
         }
     }
 }
 
 @Composable
-fun StatusBadge(status: ContactStatus) {
+fun StatusBadge(status: LeadStatus) {
     val color = when (status) {
-        ContactStatus.ACCEPTED -> Color(0xFF4CAF50)
-        ContactStatus.REJECTED -> Color(0xFFF44336)
-        ContactStatus.ANSWERED -> Color(0xFF2196F3)
-        ContactStatus.GHOSTED -> Color(0xFF9E9E9E)
+        LeadStatus.ACCEPTED -> Color(0xFF4CAF50)
+        LeadStatus.REJECTED -> Color(0xFFF44336)
+        LeadStatus.GHOSTED -> Color(0xFF9E9E9E)
+        LeadStatus.ANSWERED -> Color(0xFF2196F3)
     }
     Surface(
         color = color.copy(alpha = 0.1f),
         shape = RoundedCornerShape(8.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.3f))
+        border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = color)
     ) {
         Text(
             status.name,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
             style = MaterialTheme.typography.labelSmall,
-            color = color,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = color
         )
     }
 }
 
 @Composable
-fun EmptyState(message: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(message, color = Color.Gray)
+fun EmptyState(icon: ImageVector, text: String) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color.LightGray)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text, textAlign = androidx.compose.ui.text.style.TextAlign.Center, color = Color.Gray)
     }
 }

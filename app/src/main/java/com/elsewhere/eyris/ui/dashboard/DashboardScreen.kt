@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 
 @Composable
@@ -30,184 +31,209 @@ fun DashboardScreen(
     onNavigateToLead: (String) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val periwinkle = Color(0xFFCCCCFF)
     val darkBg = Color(0xFF0A0A0B)
-    val cardBg = Color(0xFF161618)
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(darkBg)
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            item {
-                // Gradient Header
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(periwinkle.copy(alpha = 0.3f), Color.Transparent)
-                            )
-                        )
-                        .padding(horizontal = 24.dp, vertical = 40.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            modifier = Modifier.size(48.dp),
-                            color = periwinkle.copy(alpha = 0.2f)
-                        ) {
-                            if (uiState.userPhotoUrl != null) {
-                                AsyncImage(
-                                    model = uiState.userPhotoUrl,
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Icon(
-                                    Icons.Default.Person,
-                                    contentDescription = null,
-                                    tint = periwinkle,
-                                    modifier = Modifier.padding(8.dp)
-                                )
-                            }
-                        }
-
-                        IconButton(onClick = { /* Settings */ }) {
-                            Icon(Icons.Default.Settings, contentDescription = null, tint = Color.White)
-                        }
-                    }
-
-                    Column(modifier = Modifier.align(Alignment.BottomStart)) {
-                        Text(
-                            "Good morning,",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color.White.copy(alpha = 0.6f)
-                        )
-                        Text(
-                            uiState.userName,
-                            style = MaterialTheme.typography.displaySmall,
-                            fontWeight = FontWeight.Black,
-                            color = Color.White
-                        )
-                    }
+        when (val state = uiState) {
+            is DashboardUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = periwinkle)
                 }
             }
-
-            item {
-                // Quick Action Card
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = periwinkle),
-                    onClick = onNavigateToSearch
-                ) {
-                    Row(
-                        modifier = Modifier.padding(24.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = Color.White.copy(alpha = 0.2f),
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.padding(12.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                "Start Prospecting",
-                                fontWeight = FontWeight.ExtraBold,
-                                color = darkBg,
-                                fontSize = 18.sp
-                            )
-                            Text(
-                                "Find businesses near you",
-                                color = darkBg.copy(alpha = 0.6f),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
+            is DashboardUiState.Error -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
                 }
             }
+            is DashboardUiState.Success -> {
+                DashboardContent(state, onNavigateToSearch, onNavigateToLead)
+            }
+        }
+    }
+}
 
-            item {
-                Column {
-                    Text(
-                        "RECENT LEADS",
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White.copy(alpha = 0.4f),
-                        letterSpacing = 1.sp
+@Composable
+fun DashboardContent(
+    state: DashboardUiState.Success,
+    onNavigateToSearch: () -> Unit,
+    onNavigateToLead: (String) -> Unit
+) {
+    val periwinkle = Color(0xFFCCCCFF)
+    val darkBg = Color(0xFF0A0A0B)
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        item {
+            // Gradient Header
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(periwinkle.copy(alpha = 0.3f), Color.Transparent)
+                        )
                     )
-                    
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(horizontal = 24.dp, vertical = 40.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        modifier = Modifier.size(48.dp),
+                        color = periwinkle.copy(alpha = 0.2f)
                     ) {
-                        items(uiState.topLeads) { lead ->
-                            LeadHeroCard(lead.businessName, lead.address, lead.coverImageUrl) {
-                                onNavigateToLead(lead.leadId)
-                            }
+                        if (state.userPhotoUrl != null) {
+                            AsyncImage(
+                                model = state.userPhotoUrl,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                tint = periwinkle,
+                                modifier = Modifier.padding(8.dp)
+                            )
                         }
+                    }
+
+                    IconButton(onClick = { /* Settings */ }) {
+                        Icon(Icons.Default.Settings, contentDescription = null, tint = Color.White)
+                    }
+                }
+
+                Column(modifier = Modifier.align(Alignment.BottomStart)) {
+                    Text(
+                        "Good morning,",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White.copy(alpha = 0.6f)
+                    )
+                    Text(
+                        state.userName,
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+
+        item {
+            // Quick Action Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = periwinkle),
+                onClick = onNavigateToSearch
+            ) {
+                Row(
+                    modifier = Modifier.padding(24.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.2f),
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            "Start Prospecting",
+                            fontWeight = FontWeight.ExtraBold,
+                            color = darkBg,
+                            fontSize = 18.sp
+                        )
+                        Text(
+                            "Find businesses near you",
+                            color = darkBg.copy(alpha = 0.6f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
             }
+        }
 
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
+        item {
+            Column {
+                Text(
+                    "RECENT LEADS",
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White.copy(alpha = 0.4f),
+                    letterSpacing = 1.sp
+                )
+
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    StatCard("Leads", uiState.leadsCount.toString(), Modifier.weight(1f))
-                    StatCard("Contacted", uiState.contactedCount.toString(), Modifier.weight(1f))
-                }
-            }
-
-            item {
-                Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                    Text(
-                        "SAVED PIPELINE",
-                        modifier = Modifier.padding(vertical = 12.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White.copy(alpha = 0.4f),
-                        letterSpacing = 1.sp
-                    )
-
-                    uiState.topLeads.forEach { lead ->
-                        LeadListRow(lead.businessName, lead.category) {
+                    items(state.recentLeads) { lead ->
+                        LeadHeroCard(lead.businessName, lead.address, lead.coverImageUrl) {
                             onNavigateToLead(lead.leadId)
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
             }
-
-            item { Spacer(modifier = Modifier.height(100.dp)) }
         }
+
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                StatCard("Leads", state.totalLeads.toString(), Modifier.weight(1f))
+                StatCard("Contacted", state.contactedCount.toString(), Modifier.weight(1f))
+            }
+        }
+
+        item {
+            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                Text(
+                    "TOP RANKED LEADS",
+                    modifier = Modifier.padding(vertical = 12.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White.copy(alpha = 0.4f),
+                    letterSpacing = 1.sp
+                )
+
+                state.topRankedLeads.forEach { lead ->
+                    LeadListRow(lead.businessName, lead.category) {
+                        onNavigateToLead(lead.leadId)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(100.dp)) }
     }
 }
 

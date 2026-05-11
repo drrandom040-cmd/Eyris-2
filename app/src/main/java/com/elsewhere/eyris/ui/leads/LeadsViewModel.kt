@@ -7,9 +7,7 @@ import com.elsewhere.eyris.data.repositories.LeadsRepository
 import com.elsewhere.eyris.domain.models.ContactedLead
 import com.elsewhere.eyris.domain.models.Lead
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 @HiltViewModel
@@ -18,29 +16,25 @@ class LeadsViewModel @Inject constructor(
     private val contactedRepository: ContactedRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<LeadsUiState>(LeadsUiState.Loading)
-    val uiState: StateFlow<LeadsUiState> = _uiState
-
-    init {
-        loadData()
-    }
-
-    fun loadData() {
-        viewModelScope.launch {
-            _uiState.value = LeadsUiState.Loading
-            try {
-                val leads = leadsRepository.getLeads()
-                val contactedLeads = contactedRepository.getContactedLeads()
-                _uiState.value = LeadsUiState.Success(leads, contactedLeads)
-            } catch (e: Exception) {
-                _uiState.value = LeadsUiState.Error(e.message ?: "Failed to load pipeline data")
-            }
-        }
-    }
+    val uiState: StateFlow<LeadsUiState> = combine(
+        leadsRepository.getAllLeads(),
+        contactedRepository.getAllContacted()
+    ) { leads, contacted ->
+        LeadsUiState.Success(leads, contacted) as LeadsUiState
+    }.catch { e ->
+        emit(LeadsUiState.Error(e.message ?: "Unknown error"))
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = LeadsUiState.Loading
+    )
 }
 
-sealed class LeadsUiState {
-    object Loading : LeadsUiState()
-    data class Success(val leads: List<Lead>, val contactedLeads: List<ContactedLead>) : LeadsUiState()
-    data class Error(val message: String) : LeadsUiState()
+sealed interface LeadsUiState {
+    data object Loading : LeadsUiState
+    data class Success(
+        val leads: List<Lead>,
+        val contactedLeads: List<ContactedLead>
+    ) : LeadsUiState
+    data class Error(val message: String) : LeadsUiState
 }

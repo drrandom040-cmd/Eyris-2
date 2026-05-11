@@ -1,60 +1,85 @@
 package com.elsewhere.eyris.data.repositories
 
+import com.elsewhere.eyris.data.local.dao.LeadDao
+import com.elsewhere.eyris.data.local.entities.LeadEntity
 import com.elsewhere.eyris.domain.models.Lead
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class LeadsRepository @Inject constructor(
-    private val firestore: FirebaseFirestore,
-    private val auth: FirebaseAuth
+    private val leadDao: LeadDao
 ) {
-    private val userId: String get() = auth.currentUser?.uid ?: ""
-
-    private val leadsCollection = firestore.collection("leads")
-
-    suspend fun saveLead(lead: Lead) {
-        val leadWithUser = lead.copy(userId = userId)
-        try {
-            leadsCollection.document(lead.leadId).set(leadWithUser).await()
-        } catch (e: Exception) {
-            com.elsewhere.eyris.utils.FirestoreUtils.handleFirestoreError(
-                e, 
-                com.elsewhere.eyris.utils.OperationType.WRITE, 
-                "leads/${lead.leadId}", 
-                auth
-            )
-        }
+    fun getAllLeads(): Flow<List<Lead>> = leadDao.getAllLeads().map { entities ->
+        entities.map { it.toDomain() }
     }
 
-    suspend fun getLeads(): List<Lead> {
-        return try {
-            leadsCollection.whereEqualTo("userId", userId)
-                .get().await().toObjects(Lead::class.java)
-        } catch (e: Exception) {
-            com.elsewhere.eyris.utils.FirestoreUtils.handleFirestoreError(
-                e, 
-                com.elsewhere.eyris.utils.OperationType.LIST, 
-                "leads", 
-                auth
-            )
-            emptyList()
-        }
+    suspend fun saveLead(lead: Lead) {
+        leadDao.insertLead(lead.toEntity())
     }
 
     suspend fun deleteLead(leadId: String) {
-        try {
-            leadsCollection.document(leadId).delete().await()
-        } catch (e: Exception) {
-            com.elsewhere.eyris.utils.FirestoreUtils.handleFirestoreError(
-                e, 
-                com.elsewhere.eyris.utils.OperationType.DELETE, 
-                "leads/$leadId", 
-                auth
-            )
+        val lead = leadDao.getLeadById(leadId)
+        if (lead != null) {
+            leadDao.deleteLead(lead)
         }
     }
+
+    suspend fun getLeadsSync(): List<Lead> {
+        return leadDao.getAllLeadsSync().map { it.toDomain() }
+    }
+
+    private fun LeadEntity.toDomain() = Lead(
+        leadId = leadId,
+        userId = userId,
+        businessName = businessName,
+        category = category,
+        address = address,
+        lat = lat,
+        lng = lng,
+        phone = phone,
+        email = email,
+        coverImageUrl = coverImageUrl,
+        openingHours = openingHours,
+        instagram = instagram,
+        facebook = facebook,
+        tiktok = tiktok,
+        whatsapp = whatsapp,
+        hasWebsite = hasWebsite,
+        websiteUrl = websiteUrl,
+        rating = rating,
+        reviewCount = reviewCount,
+        weightedScore = weightedScore,
+        savedAt = savedAt,
+        searchQuery = searchQuery,
+        synced = synced
+    )
+
+    private fun Lead.toEntity() = LeadEntity(
+        leadId = leadId,
+        userId = userId,
+        businessName = businessName,
+        category = category,
+        address = address,
+        lat = lat,
+        lng = lng,
+        phone = phone,
+        email = email,
+        coverImageUrl = coverImageUrl,
+        openingHours = openingHours,
+        instagram = instagram,
+        facebook = facebook,
+        tiktok = tiktok,
+        whatsapp = whatsapp,
+        hasWebsite = hasWebsite,
+        websiteUrl = websiteUrl,
+        rating = rating,
+        reviewCount = reviewCount,
+        weightedScore = weightedScore,
+        savedAt = savedAt,
+        searchQuery = searchQuery,
+        synced = synced
+    )
 }

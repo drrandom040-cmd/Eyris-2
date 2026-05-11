@@ -2,12 +2,7 @@ package com.elsewhere.eyris.ui.export
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.FileDownload
@@ -18,14 +13,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import androidx.lifecycle.viewModelScope
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.elsewhere.eyris.data.repositories.ContactedRepository
-import com.elsewhere.eyris.domain.models.ContactStatus
 import com.elsewhere.eyris.domain.models.ContactedLead
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
@@ -36,18 +30,16 @@ import javax.inject.Inject
 @HiltViewModel
 class ExportViewModel @Inject constructor(
     private val contactedRepository: ContactedRepository
-) : androidx.lifecycle.ViewModel() {
+) : ViewModel() {
 
     private val _leads = MutableStateFlow<List<ContactedLead>>(emptyList())
     val leads: StateFlow<List<ContactedLead>> = _leads
 
     init {
-        loadLeads()
-    }
-
-    private fun loadLeads() {
         viewModelScope.launch {
-            _leads.value = contactedRepository.getContactedLeads()
+            contactedRepository.getAllContacted().collect {
+                _leads.value = it
+            }
         }
     }
 
@@ -84,7 +76,6 @@ fun ExportScreen(
 ) {
     val context = LocalContext.current
     val leads by viewModel.leads.collectAsState()
-    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {

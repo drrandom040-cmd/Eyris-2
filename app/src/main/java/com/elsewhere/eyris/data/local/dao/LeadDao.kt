@@ -9,6 +9,9 @@ interface LeadDao {
     @Query("SELECT * FROM leads ORDER BY savedAt DESC")
     fun getAllLeads(): Flow<List<LeadEntity>>
 
+    @Query("SELECT * FROM leads")
+    suspend fun getAllLeadsSync(): List<LeadEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLead(lead: LeadEntity)
 

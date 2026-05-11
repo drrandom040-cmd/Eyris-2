@@ -5,7 +5,6 @@ import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -13,19 +12,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import com.elsewhere.eyris.domain.models.ContactStatus
+import com.elsewhere.eyris.domain.models.LeadStatus
 import com.elsewhere.eyris.domain.models.Lead
-import com.elsewhere.eyris.ui.search.SocialCircleButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,11 +32,11 @@ fun BusinessProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     var showStatusDialog by remember { mutableStateOf(false) }
     var selectedPlatform by remember { mutableStateOf("") }
-    var selectedStatus by remember { mutableStateOf(ContactStatus.ANSWERED) }
+    var selectedStatus by remember { mutableStateOf(LeadStatus.ANSWERED) }
     var notes by remember { mutableStateOf("") }
 
     LaunchedEffect(leadId) {
@@ -56,7 +53,7 @@ fun BusinessProfileScreen(
                     Text("How did the contact with ${lead.businessName} go?", style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    ContactStatus.values().forEach { status ->
+                    LeadStatus.entries.forEach { status ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
@@ -65,7 +62,7 @@ fun BusinessProfileScreen(
                                 selected = selectedStatus == status,
                                 onClick = { selectedStatus = status }
                             )
-                            Text(status.name.lowercase().capitalize(), modifier = Modifier.padding(start = 8.dp))
+                            Text(status.name.lowercase().replaceFirstChar { it.uppercase() }, modifier = Modifier.padding(start = 8.dp))
                         }
                     }
 
@@ -83,7 +80,7 @@ fun BusinessProfileScreen(
                 Button(onClick = {
                     viewModel.contactLead(lead, selectedPlatform, selectedStatus, notes)
                     showStatusDialog = false
-                    onBack() // Go back after moving lead
+                    onBack()
                 }) {
                     Text("Confirm")
                 }

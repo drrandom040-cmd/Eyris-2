@@ -3,6 +3,8 @@ package com.elsewhere.eyris.di
 import android.content.Context
 import androidx.room.Room
 import com.elsewhere.eyris.data.local.AppDatabase
+import com.elsewhere.eyris.data.local.dao.ContactedDao
+import com.elsewhere.eyris.data.local.dao.LeadDao
 import com.elsewhere.eyris.data.remote.scraper.FoursquareApi
 import com.elsewhere.eyris.data.remote.scraper.GoogleMapsScraper
 import com.elsewhere.eyris.data.remote.scraper.OsmOverpassApi
@@ -55,6 +57,14 @@ object AppModule {
             }
         }
     }
+
+    @Provides
+    @Singleton
+    fun provideLeadDao(db: AppDatabase): LeadDao = db.leadDao
+
+    @Provides
+    @Singleton
+    fun provideContactedDao(db: AppDatabase): ContactedDao = db.contactedDao
 
     @Provides
     @Singleton

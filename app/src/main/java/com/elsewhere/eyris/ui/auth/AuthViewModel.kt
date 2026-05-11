@@ -21,7 +21,7 @@ class AuthViewModel @Inject constructor(
     private val userRepository: UserRepository
 ) : ViewModel() {
 
-    private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
+    private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
     val authState: StateFlow<AuthState> = _authState
 
     init {
@@ -30,10 +30,10 @@ class AuthViewModel @Inject constructor(
 
     private fun checkAuth() {
         val currentUser = auth.currentUser
-        if (currentUser != null) {
-            _authState.value = AuthState.Authenticated
+        _authState.value = if (currentUser != null) {
+            AuthState.Authenticated(currentUser.uid)
         } else {
-            _authState.value = AuthState.Unauthenticated
+            AuthState.Unauthenticated
         }
     }
 
@@ -55,7 +55,9 @@ class AuthViewModel @Inject constructor(
                         )
                     }
                     userRepository.saveUser(user)
-                    _authState.value = AuthState.Authenticated
+                    _authState.value = AuthState.Authenticated(firebaseUser.uid)
+                } else {
+                    _authState.value = AuthState.Error("Firebase user is null after sign in")
                 }
             } catch (e: Exception) {
                 Log.e("EyrisAuth", "Firebase auth with Google failed", e)
@@ -73,10 +75,9 @@ class AuthViewModel @Inject constructor(
     }
 }
 
-sealed class AuthState {
-    object Idle : AuthState()
-    object Loading : AuthState()
-    object Authenticated : AuthState()
-    object Unauthenticated : AuthState()
-    data class Error(val message: String) : AuthState()
+sealed interface AuthState {
+    data object Loading : AuthState
+    data object Unauthenticated : AuthState
+    data class Authenticated(val userId: String) : AuthState
+    data class Error(val message: String) : AuthState
 }

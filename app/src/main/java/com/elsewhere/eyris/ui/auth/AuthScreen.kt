@@ -67,7 +67,7 @@ fun AuthScreen(
     )
 
     LaunchedEffect(authState) {
-        if (authState == AuthState.Authenticated) {
+        if (authState is AuthState.Authenticated) {
             onAuthSuccess()
         }
     }
