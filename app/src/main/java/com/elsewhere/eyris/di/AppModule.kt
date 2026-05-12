@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.elsewhere.eyris.data.local.AppDatabase
 import com.elsewhere.eyris.data.local.dao.ContactedDao
 import com.elsewhere.eyris.data.local.dao.LeadDao
+import com.elsewhere.eyris.data.remote.providers.google.GooglePlacesProvider
 import com.elsewhere.eyris.data.remote.scraper.*
 import com.elsewhere.eyris.data.repository.LeadRepositoryImpl
 import com.elsewhere.eyris.domain.repository.LeadRepository
@@ -66,13 +67,17 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideGooglePlacesProvider(): GooglePlacesProvider = GooglePlacesProvider()
+
+    @Provides
+    @Singleton
     fun provideLeadRepository(
         db: AppDatabase,
-        googleMapsScraper: GoogleMapsScraper,
+        googlePlacesProvider: GooglePlacesProvider,
         foursquareApi: FoursquareApi,
         osmOverpassApi: OsmOverpassApi,
         geocodingApi: NominatimGeocodingApi
     ): LeadRepository {
-        return LeadRepositoryImpl(db, googleMapsScraper, foursquareApi, osmOverpassApi, geocodingApi)
+        return LeadRepositoryImpl(db, googlePlacesProvider, foursquareApi, osmOverpassApi, geocodingApi)
     }
 }

@@ -33,6 +33,15 @@ android {
         }
 
         buildConfigField "String", "FSQ_API_KEY", "\"\"" // User will set this in local.properties
+
+        Properties properties = new Properties()
+        if (project.rootProject.file('local.properties').exists()) {
+            properties.load(project.rootProject.file('local.properties').newDataInputStream())
+        }
+
+        def rapidApiKey = properties.getProperty('RAPID_API_KEY') ?: ""
+
+        buildConfigField "String", "RAPID_API_KEY", "\"$rapidApiKey\""
     }
 
     base {
@@ -105,10 +114,11 @@ dependencies {
     kapt "androidx.room:room-compiler:2.6.1"
 
     // Ktor
-    implementation "io.ktor:ktor-client-core:2.3.7"
-    implementation "io.ktor:ktor-client-okhttp:2.3.7"
-    implementation "io.ktor:ktor-client-content-negotiation:2.3.7"
-    implementation "io.ktor:ktor-serialization-kotlinx-json:2.3.7"
+    implementation "io.ktor:ktor-client-core:2.3.8"
+    implementation "io.ktor:ktor-client-okhttp:2.3.8"
+    implementation "io.ktor:ktor-client-content-negotiation:2.3.8"
+    implementation "io.ktor:ktor-serialization-kotlinx-json:2.3.8"
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2"
 
     // Jsoup
     implementation 'org.jsoup:jsoup:1.17.2'

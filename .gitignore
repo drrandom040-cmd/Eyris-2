@@ -11,6 +11,8 @@ coverage/
 .gradle/
 app/build/
 local.properties
+google-services.json
+local.properties
 .idea/
 *.iml
 *.apk
