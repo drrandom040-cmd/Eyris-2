@@ -5,6 +5,7 @@ import com.elsewhere.eyris.data.local.entities.LeadEntity
 import com.elsewhere.eyris.data.remote.scraper.*
 import com.elsewhere.eyris.domain.models.Lead
 import com.elsewhere.eyris.domain.repository.LeadRepository
+import com.elsewhere.eyris.utils.LeadPipeline
 import com.elsewhere.eyris.utils.MergeEngine
 import com.elsewhere.eyris.utils.RankingEngine
 import kotlinx.coroutines.async
@@ -47,13 +48,14 @@ class LeadRepositoryImpl @Inject constructor(
             val foursquareResults = foursquareDeferred.await()
             val osmResults = osmDeferred.await()
 
-            // 3. Unified Normalization, Merging, and Deduplication
-            val merged = MergeEngine.merge(listOf(googleResults, foursquareResults, osmResults))
+            // 3. Unified Normalization, Merging, and Deduplication via Pipeline
+            val rawResults = googleResults + foursquareResults + osmResults
+            val processedResults = LeadPipeline.process(rawResults)
 
             // 4. Ranking and Filtering
-            val ranked = RankingEngine.rank(merged)
+            val ranked = RankingEngine.rank(processedResults)
 
-            // Filter to businesses without websites and cap at 20 as per spec
+            // Filter to businesses without websites as per spec and cap at 20
             ranked.filter { !it.hasWebsite }.take(20)
         }
     }

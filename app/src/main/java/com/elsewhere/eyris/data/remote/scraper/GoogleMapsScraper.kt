@@ -1,7 +1,8 @@
 package com.elsewhere.eyris.data.remote.scraper
 
 import android.util.Log
-import com.elsewhere.eyris.domain.models.Lead
+import com.elsewhere.eyris.domain.models.BusinessLead
+import com.elsewhere.eyris.domain.models.SourceType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
@@ -13,9 +14,9 @@ class GoogleMapsScraper @Inject constructor() {
 
     private val mobileUserAgent = "Mozilla/5.0 (Linux; Android 13; SM-S901B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36"
 
-    suspend fun search(location: String, category: String): List<Lead> {
+    suspend fun search(location: String, category: String): List<BusinessLead> {
         return withContext(Dispatchers.IO) {
-            val results = mutableListOf<Lead>()
+            val results = mutableListOf<BusinessLead>()
             try {
                 val query = "$category in $location"
                 val url = "https://www.google.com/search?q=${URLEncoder.encode(query, "UTF-8")}&tbm=lcl"
@@ -27,60 +28,54 @@ class GoogleMapsScraper @Inject constructor() {
 
                 val doc = connection.get()
 
-                // Robust Captcha and Block Detection
-                val pageTitle = doc.title()
-                if (pageTitle.contains("Service Unavailable") ||
-                    pageTitle.contains("Sorry") ||
-                    doc.select("iframe[src*='recaptcha']").isNotEmpty() ||
-                    doc.body().text().contains("unusual traffic from your computer network")) {
-                    Log.w("GoogleMapsScraper", "Google search blocked: $pageTitle")
+                // Enhanced block and captcha detection
+                val bodyText = doc.body().text()
+                if (doc.title().contains("Service Unavailable") ||
+                    doc.location().contains("/sorry/") ||
+                    bodyText.contains("unusual traffic from your computer network") ||
+                    bodyText.contains("To continue, please type the characters below")) {
+                    Log.w("GoogleMapsScraper", "Google search blocked: ${doc.title()}")
                     return@withContext emptyList()
                 }
 
-                // Corrected Selector: Only select parent result cards to avoid duplicates
-                // div.VkpSyc is the standard container for local pack result cards
+                // Select parent result cards only
                 val elements = doc.select("div.VkpSyc")
-                if (elements.isEmpty()) {
-                    Log.d("GoogleMapsScraper", "No results found for query: $query")
-                }
-
                 elements.forEach { element ->
-                    // Scope searches strictly within the result card
                     val name = element.select("div.rllt__details span.OSrXXb").firstOrNull()?.text() ?: ""
-
-                    // Address parsing: typically the third div in the details block
                     val address = element.select("div.rllt__details div:nth-child(3)").firstOrNull()?.text() ?: ""
 
                     val ratingStr = element.select("span.Ym9Kbc").firstOrNull()?.text()?.replace(",", ".") ?: ""
-                    val rating = ratingStr.toDoubleOrNull() ?: 0.0
+                    val rating = ratingStr.toDoubleOrNull()
 
                     val reviewCountStr = element.select("span.RDA5Wb").firstOrNull()?.text()?.filter { it.isDigit() } ?: ""
-                    val reviewCount = reviewCountStr.toIntOrNull() ?: 0
+                    val reviewCount = reviewCountStr.toIntOrNull()
                     
-                    // Website detection: check for specific icons or text indicators
-                    val hasWebsite = element.select("a.yY6Kbe").isNotEmpty() ||
-                                     element.text().contains("Website", ignoreCase = true)
+                    val website = element.select("a.yY6Kbe").firstOrNull()?.attr("href")
                     
                     if (name.isNotBlank()) {
-                        results.add(Lead(
-                            leadId = "google_${UUID.nameUUIDFromBytes(name.toByteArray())}",
-                            businessName = name,
+                        results.add(BusinessLead(
+                            id = "google_${UUID.nameUUIDFromBytes(name.toByteArray())}",
+                            source = SourceType.GOOGLE,
+                            name = name,
                             category = category,
+                            latitude = null,
+                            longitude = null,
                             address = address,
+                            city = null,
+                            country = null,
+                            phone = null,
+                            website = website,
                             rating = rating,
                             reviewCount = reviewCount,
-                            hasWebsite = hasWebsite,
-                            searchQuery = query,
-                            coverImageUrl = null, // Removed fabricated placeholder
-                            instagram = null,    // Removed fabricated handles
-                            facebook = null,     // Removed fabricated handles
-                            whatsapp = null,
-                            websiteUrl = null
+                            imageUrl = null,
+                            instagram = null, // Purged fake data
+                            facebook = null,  // Purged fake data
+                            confidence = 0.5
                         ))
                     }
                 }
             } catch (e: Exception) {
-                Log.e("GoogleMapsScraper", "Error scraping Google Search Local", e)
+                Log.e("GoogleMapsScraper", "Error scraping Google", e)
             }
             results
         }
